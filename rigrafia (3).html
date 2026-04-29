@@ -16,18 +16,18 @@
 </script>
 <style>
 :root {
-  --bg: #f7f3ec; --paper: #faf7f2; --ink: #1c1a16;
-  --ink-dim: rgba(28,26,22,0.4); --ink-dimmer: rgba(28,26,22,0.18);
-  --accent: #3a5a8c; --accent-dim: rgba(58,90,140,0.12);
-  --gold: #8c6a2a; --orange: #c8621a; --red: #5a2a2a;
-  --compose-bg: #fff; --border: rgba(28,26,22,0.12);
-  --shadow: 0 2px 8px rgba(0,0,0,0.08); --target-color: #2a6b3a;
+  --bg: #1a3540; --paper: #d4e4ec; --ink: #0a1f28;
+  --ink-dim: rgba(10,31,40,0.5); --ink-dimmer: rgba(10,31,40,0.22);
+  --accent: #5a8aa0; --accent-dim: rgba(90,138,160,0.18);
+  --gold: #c19a3a; --orange: #e07a3a; --red: #8a3838;
+  --compose-bg: #e8f0f4; --border: rgba(10,31,40,0.18);
+  --shadow: 0 2px 8px rgba(10,31,40,0.12); --target-color: #3a7a5a;
 }
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 body {
-  background:var(--bg); color:var(--ink);
+  background:var(--bg); color:var(--paper);
   font-family:'Courier Prime', monospace;
-  height:100vh; overflow:hidden; display:flex; flex-direction:column;
+  height:100vh; height:100dvh; overflow:hidden; display:flex; flex-direction:column;
 }
 body::before {
   content:''; position:fixed; inset:0;
@@ -42,7 +42,7 @@ body::before {
   align-items:flex-start; justify-content:center;
   padding:2rem 1.5rem;
   padding-bottom:calc(8rem + env(safe-area-inset-bottom));
-  background:var(--paper); overflow-y:auto;
+  background:var(--paper); color:var(--ink); overflow-y:auto;
 }
 .intro-inner { max-width:400px; width:100%; }
 .title-block { margin-bottom:1.2rem; }
