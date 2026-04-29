@@ -70,6 +70,10 @@ input[type="file"] { display:none; }
 .resume-btn:active { opacity:0.7; }
 .divider-line { height:1px; background:var(--border); margin:1rem 0; }
 
+.io-row { display:flex; gap:0.5rem; margin-bottom:0.8rem; }
+.io-btn { flex:1; padding:0.55rem; background:white; border:1px solid var(--border); border-radius:2px; font-family:'Courier Prime', monospace; font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; color:var(--ink-dim); text-align:center; transition:all 0.15s; }
+.io-btn:active { color:var(--ink); border-color:var(--ink); }
+
 /* ══ APP ══ */
 #screen-app { flex-direction:column; }
 .app-header { padding:0.55rem 0.9rem; background:var(--ink); color:var(--paper); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:0.5rem; }
@@ -118,7 +122,8 @@ input[type="file"] { display:none; }
 .tiles-scroll::-webkit-scrollbar { width:5px; }
 .tiles-scroll::-webkit-scrollbar-track { background:transparent; }
 .tiles-scroll::-webkit-scrollbar-thumb { background:var(--ink-dim); border-radius:2px; }
-.tiles-list { display:flex; flex-direction:column; gap:0.35rem; }
+.tiles-list { display:block; }
+.tiles-list .tessera { margin-bottom:0.35rem; }
 .tiles-grid { display:flex; flex-wrap:wrap; gap:0.4rem; align-content:flex-start; }
 .tiles-grid .tessera { font-size:0.76rem; }
 
@@ -183,11 +188,16 @@ input[type="file"] { display:none; }
       <div class="resume-meta" id="resume-meta">—</div>
       <div class="resume-btns">
         <button class="resume-btn primary" onclick="resumeProject()">Riprendi →</button>
-        <button class="resume-btn" onclick="clearProject()">Nuovo progetto</button>
+        <button class="resume-btn" onclick="exportProject()">Esporta</button>
+        <button class="resume-btn" onclick="clearProject()">Nuovo</button>
       </div>
     </div>
     <div id="new-project-area">
       <div class="divider-line" id="divider-new" style="display:none"></div>
+      <div class="io-row">
+        <label for="import-file" class="io-btn">↓ Importa progetto</label>
+        <input type="file" id="import-file" accept=".json,application/json" onchange="handleImport(event)" style="display:none">
+      </div>
       <span class="field-label">Nome progetto</span>
       <input type="text" id="project-name" placeholder="es. Pavese — La luna e i falò" style="margin-bottom:0.9rem">
       <span class="field-label">Testo base</span>
@@ -204,7 +214,7 @@ input[type="file"] { display:none; }
         </div>
         <div class="config-item">
           <span class="field-label">Max tessere</span>
-          <input type="number" id="max-tiles" value="300" min="20">
+          <input type="number" id="max-tiles" value="3000" min="20">
         </div>
         <div class="config-item">
           <span class="field-label">Righe target</span>
@@ -223,6 +233,7 @@ input[type="file"] { display:none; }
     <div class="hdr-btns">
       <span class="counter-badge" id="counter-badge">0 / 12</span>
       <button class="hdr-btn" onclick="showPreview()">Testo →</button>
+      <button class="hdr-btn" onclick="exportProject()">↑ Esp</button>
       <button class="hdr-btn" onclick="resetCompose()">Reset</button>
       <button class="hdr-btn" onclick="goHome()">← Home</button>
     </div>
@@ -262,11 +273,9 @@ input[type="file"] { display:none; }
 <!-- ══ PREVIEW ══ -->
 <div class="preview-overlay" id="preview-overlay">
   <div class="preview-hdr">
+    <button class="hdr-btn" style="background:var(--ink);color:var(--paper);padding:0.5rem 0.9rem;font-size:0.72rem" onclick="hidePreview()">← Indietro</button>
     <span class="preview-hdr-title">Testo derivato</span>
-    <div style="display:flex;gap:0.5rem">
-      <button class="hdr-btn" style="background:var(--ink);color:var(--paper)" onclick="copyPreview()">Copia</button>
-      <button class="hdr-btn" style="background:var(--ink);color:var(--paper)" onclick="hidePreview()">Chiudi</button>
-    </div>
+    <button class="hdr-btn" style="background:var(--accent);color:var(--paper);padding:0.5rem 0.9rem;font-size:0.72rem" onclick="copyPreview()">Copia</button>
   </div>
   <div class="preview-body" id="preview-body"></div>
 </div>
@@ -374,6 +383,41 @@ function isCompatibile(tileText, lastTile) {
   if (!isTesseraAperta(lastTile.text)) return true;
   const fw = tileText.trim().toLowerCase().replace(/^[«"']+/, '').split(/\s+/)[0] || '';
   return !PAROLE_APERTE.has(fw);
+}
+
+// ── ESPORTA / IMPORTA ──
+function exportProject() {
+  const saved = loadState();
+  if (!saved) { showToast('Nessun progetto da esportare'); return; }
+  const dataStr = JSON.stringify(saved, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = (saved.projectName || 'rigrafia').replace(/[^a-z0-9-_]/gi, '_').slice(0, 40);
+  a.href = url;
+  a.download = 'rigrafia_' + safeName + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Progetto esportato');
+}
+
+async function handleImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data.tiles || !Array.isArray(data.tiles)) {
+      showToast('File non valido'); return;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    showToast('Progetto importato');
+    setTimeout(() => location.reload(), 800);
+  } catch(e) {
+    showToast('Errore importazione: ' + (e.message || 'sconosciuto'));
+  }
 }
 
 // ── STORAGE ──
@@ -542,21 +586,85 @@ function renderCompose() {
   composeTiles.forEach((id, pos) => drop.appendChild(makeTessera(allTiles[id], 'compose', pos)));
 }
 
+// ── VIRTUALIZZAZIONE ──
+let virtualState = {
+  visibleTiles: [],     // array delle tessere filtrate (oggetti tile)
+  rowHeight: 38,        // altezza stimata per tessera in lista (px)
+  buffer: 8,            // tessere extra sopra/sotto da pre-renderizzare
+  scrollTop: 0,
+  scrollListenerAttached: false,
+};
+
 function renderTiles() {
+  const scrollEl = document.querySelector('.tiles-scroll');
   const container = document.getElementById('tiles-container');
   container.className = currentView === 'grid' ? 'tiles-grid' : 'tiles-list';
-  container.innerHTML = '';
+
   const query = document.getElementById('search-input').value.toLowerCase();
   let visible = allTiles.filter(t => !t.inCompose);
   if (query) visible = visible.filter(t => t.text.toLowerCase().includes(query));
   if (currentView === 'grid') visible = [...visible].sort(() => Math.random() - 0.5);
+
   document.getElementById('tiles-count').textContent = visible.length + ' tessere';
+  virtualState.visibleTiles = visible;
+
+  // attach scroll listener once
+  if (!virtualState.scrollListenerAttached) {
+    scrollEl.addEventListener('scroll', () => {
+      virtualState.scrollTop = scrollEl.scrollTop;
+      paintVisibleWindow();
+    });
+    virtualState.scrollListenerAttached = true;
+  }
+
+  // griglia: limita a 200 per evitare blocchi
+  if (currentView === 'grid') {
+    container.innerHTML = '';
+    container.style.height = '';
+    container.style.position = '';
+    const lastTile = getLastComposeTile();
+    visible.slice(0, 200).forEach(tile => {
+      const el = makeTessera(tile, 'tiles', null);
+      if (!isCompatibile(tile.text, lastTile)) el.classList.add('incompatibile');
+      container.appendChild(el);
+    });
+    return;
+  }
+
+  // sequenza/cerca: virtualizzazione verticale
+  scrollEl.scrollTop = 0;
+  virtualState.scrollTop = 0;
+  paintVisibleWindow();
+}
+
+function paintVisibleWindow() {
+  if (currentView === 'grid') return;
+  const container = document.getElementById('tiles-container');
+  const scrollEl = document.querySelector('.tiles-scroll');
+  const total = virtualState.visibleTiles.length;
+  const rh = virtualState.rowHeight;
+  const containerH = scrollEl.clientHeight || 400;
+
+  const totalHeight = total * rh;
+  container.style.position = 'relative';
+  container.style.height = totalHeight + 'px';
+
+  const startIdx = Math.max(0, Math.floor(virtualState.scrollTop / rh) - virtualState.buffer);
+  const endIdx = Math.min(total, Math.ceil((virtualState.scrollTop + containerH) / rh) + virtualState.buffer);
+
+  container.innerHTML = '';
   const lastTile = getLastComposeTile();
-  visible.forEach(tile => {
+  for (let i = startIdx; i < endIdx; i++) {
+    const tile = virtualState.visibleTiles[i];
+    if (!tile) continue;
     const el = makeTessera(tile, 'tiles', null);
     if (!isCompatibile(tile.text, lastTile)) el.classList.add('incompatibile');
+    el.style.position = 'absolute';
+    el.style.top = (i * rh) + 'px';
+    el.style.left = '0';
+    el.style.right = '0';
     container.appendChild(el);
-  });
+  }
 }
 
 function makeTessera(tile, zone, pos) {
