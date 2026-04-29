@@ -129,8 +129,7 @@ input[type="file"] { display:none; }
 .tiles-scroll::-webkit-scrollbar { width:5px; }
 .tiles-scroll::-webkit-scrollbar-track { background:transparent; }
 .tiles-scroll::-webkit-scrollbar-thumb { background:var(--ink-dim); border-radius:2px; }
-.tiles-list { display:block; }
-.tiles-list .tessera { margin-bottom:0.35rem; }
+.tiles-list { display:flex; flex-direction:column; gap:0.35rem; }
 .tiles-grid { display:flex; flex-wrap:wrap; gap:0.4rem; align-content:flex-start; }
 .tiles-grid .tessera { font-size:0.76rem; }
 
@@ -647,12 +646,11 @@ function renderCompose() {
   composeTiles.forEach((id, pos) => drop.appendChild(makeTessera(allTiles[id], 'compose', pos)));
 }
 
-// ── VIRTUALIZZAZIONE ──
-let virtualState = {
-  visibleTiles: [],     // array delle tessere filtrate (oggetti tile)
-  rowHeight: 38,        // altezza stimata per tessera in lista (px)
-  buffer: 8,            // tessere extra sopra/sotto da pre-renderizzare
-  scrollTop: 0,
+// ── CARICAMENTO PROGRESSIVO ──
+let progState = {
+  visibleTiles: [],     // array filtrato di tessere
+  rendered: 0,          // quante ne ho già messe nel DOM
+  batchSize: 200,
   scrollListenerAttached: false,
 };
 
@@ -660,6 +658,9 @@ function renderTiles() {
   const scrollEl = document.querySelector('.tiles-scroll');
   const container = document.getElementById('tiles-container');
   container.className = currentView === 'grid' ? 'tiles-grid' : 'tiles-list';
+  container.innerHTML = '';
+  container.style.height = '';
+  container.style.position = '';
 
   const query = document.getElementById('search-input').value.toLowerCase();
   let visible = allTiles.filter(t => !t.inCompose);
@@ -667,65 +668,45 @@ function renderTiles() {
   if (currentView === 'grid') visible = [...visible].sort(() => Math.random() - 0.5);
 
   document.getElementById('tiles-count').textContent = visible.length + ' tessere';
-  virtualState.visibleTiles = visible;
+  progState.visibleTiles = visible;
+  progState.rendered = 0;
 
   // attach scroll listener once
-  if (!virtualState.scrollListenerAttached) {
+  if (!progState.scrollListenerAttached) {
     scrollEl.addEventListener('scroll', () => {
-      virtualState.scrollTop = scrollEl.scrollTop;
-      paintVisibleWindow();
+      if (currentView === 'grid') return;
+      // se sono vicino al fondo, carica il prossimo batch
+      const remaining = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+      if (remaining < 600 && progState.rendered < progState.visibleTiles.length) {
+        renderNextBatch();
+      }
     });
-    virtualState.scrollListenerAttached = true;
+    progState.scrollListenerAttached = true;
   }
 
-  // griglia: limita a 200 per evitare blocchi
-  if (currentView === 'grid') {
-    container.innerHTML = '';
-    container.style.height = '';
-    container.style.position = '';
-    const lastTile = getLastComposeTile();
-    visible.slice(0, 200).forEach(tile => {
-      const el = makeTessera(tile, 'tiles', null);
-      if (!isCompatibile(tile.text, lastTile)) el.classList.add('incompatibile');
-      container.appendChild(el);
-    });
-    return;
-  }
-
-  // sequenza/cerca: virtualizzazione verticale
+  // riporta lo scroll all'inizio
   scrollEl.scrollTop = 0;
-  virtualState.scrollTop = 0;
-  paintVisibleWindow();
+
+  // primo batch
+  renderNextBatch();
 }
 
-function paintVisibleWindow() {
-  if (currentView === 'grid') return;
+function renderNextBatch() {
   const container = document.getElementById('tiles-container');
-  const scrollEl = document.querySelector('.tiles-scroll');
-  const total = virtualState.visibleTiles.length;
-  const rh = virtualState.rowHeight;
-  const containerH = scrollEl.clientHeight || 400;
-
-  const totalHeight = total * rh;
-  container.style.position = 'relative';
-  container.style.height = totalHeight + 'px';
-
-  const startIdx = Math.max(0, Math.floor(virtualState.scrollTop / rh) - virtualState.buffer);
-  const endIdx = Math.min(total, Math.ceil((virtualState.scrollTop + containerH) / rh) + virtualState.buffer);
-
-  container.innerHTML = '';
   const lastTile = getLastComposeTile();
-  for (let i = startIdx; i < endIdx; i++) {
-    const tile = virtualState.visibleTiles[i];
+  const start = progState.rendered;
+  const end = currentView === 'grid'
+    ? Math.min(progState.visibleTiles.length, 200)  // griglia: max 200 totali
+    : Math.min(progState.visibleTiles.length, start + progState.batchSize);
+
+  for (let i = start; i < end; i++) {
+    const tile = progState.visibleTiles[i];
     if (!tile) continue;
     const el = makeTessera(tile, 'tiles', null);
     if (!isCompatibile(tile.text, lastTile)) el.classList.add('incompatibile');
-    el.style.position = 'absolute';
-    el.style.top = (i * rh) + 'px';
-    el.style.left = '0';
-    el.style.right = '0';
     container.appendChild(el);
   }
+  progState.rendered = end;
 }
 
 function makeTessera(tile, zone, pos) {
