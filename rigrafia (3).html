@@ -16,11 +16,11 @@
 </script>
 <style>
 :root {
-  --bg: #1a3540; --paper: #d4e4ec; --ink: #0a1f28;
+  --bg: #1a3540; --paper: #ADD8E6; --ink: #0a1f28;
   --ink-dim: rgba(10,31,40,0.5); --ink-dimmer: rgba(10,31,40,0.22);
   --accent: #5a8aa0; --accent-dim: rgba(90,138,160,0.18);
   --gold: #c19a3a; --orange: #e07a3a; --red: #8a3838;
-  --compose-bg: #e8f0f4; --border: rgba(10,31,40,0.18);
+  --compose-bg: #c8e0ea; --border: rgba(10,31,40,0.18);
   --shadow: 0 2px 8px rgba(10,31,40,0.12); --target-color: #3a7a5a;
 }
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
@@ -104,7 +104,7 @@ input[type="file"] { display:none; }
 .compose-empty { color:var(--ink-dimmer); font-style:italic; font-size:0.8rem; padding:0.5rem 0; pointer-events:none; }
 
 /* ── TESSERE ── */
-.tessera { background:#f4f8fa; border:1px solid var(--border); border-radius:2px; padding:0.32rem 0.65rem; font-family:'Courier Prime', monospace; font-size:0.82rem; line-height:1.4; color:var(--ink); cursor:grab; box-shadow:var(--shadow); position:relative; user-select:none; -webkit-user-select:none; transition:box-shadow 0.12s; }
+.tessera { background:#dfeef4; border:1px solid var(--border); border-radius:2px; padding:0.32rem 0.65rem; font-family:'Courier Prime', monospace; font-size:0.82rem; line-height:1.4; color:var(--ink); cursor:grab; box-shadow:var(--shadow); position:relative; user-select:none; -webkit-user-select:none; transition:box-shadow 0.12s; }
 .tessera:active { cursor:grabbing; }
 .tessera.dragging { opacity:0.35; box-shadow:none; }
 .tessera.drag-over-top { border-top:2px solid var(--accent); }
